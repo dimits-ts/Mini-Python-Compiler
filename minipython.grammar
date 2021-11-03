@@ -15,35 +15,54 @@ Helpers
 
 Tokens
 	tab = 9;
+	great_eq = '>=';
+	less_eq = '<=';
+	not_eq = '!=';
+	eq = '==';
+	sub_assign = '-=';
+	div_assign = '/=';
+	less_than = '<';
+	greater_than = '>';
+
 	plus = '+';
 	minus = '-';
-	mult = '*';
 	dmult = '**';
+	mult = '*';
 	div = '/';
-	eq = '=';
-	exclam = '!';
-	dictt = 'dict';
-	def = 'def';
-	logic_plus = '&&';
+	perc = '%';
+	assign = '=';
+
 	l_par = '(';
 	r_par = ')';
 	l_br = '[';
 	r_br = ']';
-	comma=',';
-	qmark = '?';
-	gqmark = ';';
+	comma =',';
+	dot = '.';
+	semi = ':';
+	double_quote = '"';
+	single_quote = 39;
+	
+	true = 'true';
+	false = 'false';
+	def = 'def';
 	if = 'if';
-	elif = 'elif';
-	else = 'else';
+	for = 'for';
+	in = 'in';
 	while = 'while';
 	print = 'print';
 	return = 'return';
-	less = '<';
-	great = '>';
-	true = 'true';
-	semi = ':';
-	false = 'false';
-	quote = '"';
+	assert = 'assert';
+	length = 'len';
+	max = 'max';
+	min = 'min';
+	import = 'import';
+	as = 'as';
+	from = 'from';
+	and = 'and';
+	or = 'or';
+	not = 'not';
+	none = 'None';
+
 	blank = (' ' | lf | cr);
 	line_comment = '#' not_eol* eol; 
 	number = digit+ | (digit+ '.' digit+);
