@@ -1,17 +1,16 @@
 /*
- * Test Comments
- */
+*/
 
 Package minipython;
 
 Helpers
 	digit = ['0' .. '9'];
-	letter = ['a' .. 'z']|['A' .. 'Z']; 
-	cr = 13; 
+	letter = ['a' .. 'z']|['A' .. 'Z'];
+	cr = 13;
 	lf = 10;
-	all = [0..127]; 
+	all = [0..127];
 	eol = lf | cr | cr lf ;
-	not_eol = [all - [cr + lf]]; 
+	not_eol = [all - [cr + lf]];
 
 Tokens
 	tab = 9;
@@ -24,12 +23,12 @@ Tokens
 	less_than = '<';
 	greater_than = '>';
 
-	plus = '+';
-	minus = '-';
-	dmult = '**';
-	mult = '*';
-	div = '/';
-	perc = '%';
+	op_add = '+';
+	op_sub = '-';
+	op_exp = '**';
+	op_mul = '*';
+	op_div = '/';
+	op_mod = '%';
 	assign = '=';
 
 	l_par = '(';
@@ -41,7 +40,7 @@ Tokens
 	semi = ':';
 	double_quote = '"';
 	single_quote = 39;
-	
+
 	true = 'true';
 	false = 'false';
 	def = 'def';
@@ -58,16 +57,120 @@ Tokens
 	import = 'import';
 	as = 'as';
 	from = 'from';
-	and = 'and';
-	or = 'or';
-	not = 'not';
+	log_and = 'and';
+	log_or = 'or';
+	log_not = 'not';
 	none = 'None';
 
 	blank = (' ' | lf | cr);
-	line_comment = '#' not_eol* eol; 
+	line_comment = '#' not_eol* eol;
 	number = digit+ | (digit+ '.' digit+);
 	id = letter (letter | digit)*;
 	string = '"'not_eol* '"';
+	string_s = 39 not_eol* 39;
 
 Ignored Tokens
 	blank, line_comment;
+
+Productions
+	goal = command*;
+	command = {func} function | {stat} statement;
+	function = def identifier l_par argument? r_par semi statement;
+	argument = identifier default_value? rest*;
+	default_value = assign value;
+	rest = comma identifier default_value?;
+
+	statement = {if} tab* if comparison semi statement |
+		{while} tab* while comparison semi statement |
+		{for} tab* for [id1]:identifier in [id2]:identifier semi statement |
+		{return} tab* return expression |
+		{print} tab* print [ex1]:expression expression_list* |
+		{assign_var} tab* identifier operate_assign expression |
+		{assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression |
+		{assertion} tab* assert [ex1]:expression expression_list? |
+		{func_call} tab* function_call;
+
+	expression =
+		{num_exp} numerical_expression |
+		{id_bracket} identifier l_br expression r_br |
+		{func_call} function_call |
+		{len_exp} length l_par expression r_par |
+		{minimax} minimax l_par value comma_value* r_par |
+		{brackets} l_br [ex1]:expression expression_list* r_br;
+
+	numerical_expression = res2 |
+		{addition} numerical_expression op_add res2 |
+		{subtraction} numerical_expression op_sub res2;
+
+	res2 = res3 |
+		{multiplication} res2 op_mul res3 |
+		{division} res2 op_div res3 |
+		{modulo} res2 op_mod res3;
+
+	res3 = value |
+		{exponentiation} res3 op_exp value;
+
+/*	
+	something =
+		{id} id |
+		{num} number |
+		{parentheses} l_par numerical_expression r_par;
+*/
+
+	import_stmt = {import_module} import module import_as? more_modules* |
+		{from_module_import} from module import identifier import_as? more_identifiers*;
+
+	module = id_dot* [id1]:identifier;
+	
+	
+/*
+	shift/reduce conflict in state [stack: TIf TLogNot PComparison *] on TLogOr in {
+        [ PComparison = TLogNot PComparison * ] followed by TLogOr (reduce),
+        [ PLogAndOr = * TLogOr ] (shift)
+	}
+*/
+	comparison =
+		{and_or} [comp1]:comparison log_and_or [comp2]:comparison |
+		{not} log_not comparison |
+		{ex_cmp_exp} [ex1]:expression one_comparison [ex2]:expression |
+		{true} true |
+		{false} false;
+
+	function_call = identifier l_par arglist? r_par;
+	arglist = expression expression_list*;
+	value = 
+		{id_func} identifier dot function_call |
+		{num} number |
+		{str_double} string |
+		{str_single} string_s |
+		{none} none|
+		{id} id |
+		{parentheses} l_par numerical_expression r_par;
+
+	identifier = id;
+
+	operate_assign = {ass} assign | {sass} sub_assign | {dass} div_assign;
+	
+	minimax = {max} max | {min} min;
+	expression_list = comma [ex2]:expression;
+	comma_value = comma value;
+		
+	import_as = as identifier;
+	more_modules = comma module import_as?;
+	more_identifiers = comma identifier import_as?;
+
+	/*id_dot = [id1]:identifier dot;*/
+	id_dot = identifier dot;
+		
+	log_and_or = {and} log_and | {or} log_or;
+	one_comparison = {gt} greater_than | {lt} less_than | {ge} great_eq | {le} less_eq | {ne} not_eq | {eq} eq;
+
+/*
+	  SHIFT/REDUCE conflict
+		expression = {multiplication} multiplication |
+					{addition} [e1]:expression op_add [e2]:expression|
+					{subtraction} expression op_sub multiplication;
+
+1 + 2 * 3 ** 4 / 5 - 6 % 7 + 8
+1 + (2 * (3 ** 4) / 5) - (6 % 7) + 8
+*/
