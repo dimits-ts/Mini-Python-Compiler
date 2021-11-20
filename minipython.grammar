@@ -1,4 +1,7 @@
 /*
+	Αλέξιος Μανδέλιας 3190106
+	Δημήτριος Τσίρμπας 3190205
+	Αναστάσιος Πασχαλίδης 3190166
 */
 
 Package minipython;
@@ -13,6 +16,7 @@ Helpers
 	not_eol = [all - [cr + lf]];
 
 Tokens
+	/* OPERATOR DEFINITIONS */
 	tab = 9;
 	great_eq = '>=';
 	less_eq = '<=';
@@ -41,6 +45,7 @@ Tokens
 	double_quote = '"';
 	single_quote = 39;
 
+	/* KEYWORD DEFINITION */
 	true = 'true';
 	false = 'false';
 	def = 'def';
@@ -62,6 +67,7 @@ Tokens
 	log_not = 'not';
 	none = 'None';
 	
+	/* IDENTIFIER AND LITERAL DEFINITION */
 	eoltoken = eol;
 
 	blank = (' ' | lf | cr);
@@ -76,56 +82,58 @@ Ignored Tokens
 
 Productions
 	goal = command*;
-	command = {func} function eoltoken | {stat} statement eoltoken;
-	
-	/* FUNCTION DEFINITION */
+	command = {func} function eoltoken 
+	| {stat} statement eoltoken;
+
+
+	/*FUNCTION DEFINITION */
 	function = def identifier l_par argument? r_par semi statement;
 	argument = identifier default_value? rest*;
 	default_value = assign value;
 	rest = comma identifier default_value?;
 
-	statement = {if} tab* if comparison semi statement |
-		{while} tab* while comparison semi statement |
-		{for} tab* for [id1]:identifier in [id2]:identifier semi statement |
-		{return} tab* return expression |
-		{print} tab* print [ex1]:expression expression_list* |
-		{assign_var} tab* identifier operate_assign expression |
-		{assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression |
-		{assertion} tab* assert [ex1]:expression expression_list? |
-		{func_call} tab* function_call |
-		{import_statement} tab* import_stmt |
-		{empty_line} tab*;
+	/* STATEMENT DEFINITION */
+	statement = {if} tab* if comparison semi statement 
+	| {while} tab* while comparison semi statement 
+	| {for} tab* for [id1]:identifier in [id2]:identifier semi statement 
+	| {return} tab* return expression 
+	| {print} tab* print [ex1]:expression expression_list* 
+	| {assign_var} tab* identifier operate_assign expression 
+	| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression 
+	| {assertion} tab* assert [ex1]:expression expression_list? 
+	| {func_call} tab* function_call 
+	| {import_statement} tab* import_stmt 
+	| {empty_line} tab*;
 
-	expression =
-		{num_exp} numerical_expression |
-		{id_bracket} identifier l_br expression r_br |
-		{func_call} function_call |
-		{len_exp} length l_par expression r_par |
-		{minimax} minimax l_par value comma_value* r_par |
-		{brackets} l_br [ex1]:expression expression_list* r_br;
+	/* GENERAL EXPRESSION DEFINITION */
+	expression ={num_exp} numerical_expression 
+	| {id_bracket} identifier l_br expression r_br 
+	| {func_call} function_call 
+	| {len_exp} length l_par expression r_par 
+	| {minimax} minimax l_par value comma_value* r_par 
+	| {brackets} l_br [ex1]:expression expression_list* r_br;
 
-	numerical_expression = res2 |
-		{addition} numerical_expression op_add res2 |
-		{subtraction} numerical_expression op_sub res2;
 
-	res2 = res3 |
-		{multiplication} res2 op_mul res3 |
-		{division} res2 op_div res3 |
-		{modulo} res2 op_mod res3;
+	/* NUMERICAL EXPRESSION DEFINITION */
+	/* First the lowest priority expression aka addition and subtraction. */
+	numerical_expression = res2 
+	| {addition} numerical_expression op_add res2 
+	|	{subtraction} numerical_expression op_sub res2;
 
-	res3 = value |
-		{exponentiation} res3 op_exp value;
+	/* Moving on to multiplication, division and modulo which are higher up in the priority order. */
+	res2 = res3 
+	| {multiplication} res2 op_mul res3 
+	| {division} res2 op_div res3 
+	| {modulo} res2 op_mod res3;
 
-/*	
-	something =
-		{id} id |
-		{num} number |
-		{parentheses} l_par numerical_expression r_par;
-*/
+	/* Lastly, in the highest priority order, the exponentiation and number literal/identifier definition. */ 
+	res3 = value 
+	| {exponentiation} res3 op_exp value;
 	
+
 	/* IMPORT STATEMENTS */
-	import_stmt = {import_module} import module import_as? more_modules* |
-		{from_module_import} from module import identifier import_as? more_identifiers*;
+	import_stmt = {import_module} import module import_as? more_modules* 
+	| {from_module_import} from module import identifier import_as? more_identifiers*;
 
 	module = id_dot* identifier;
  
@@ -135,37 +143,47 @@ Productions
 	more_identifiers = comma identifier import_as?;
 	id_dot = identifier dot;
 
+
+	/* LOGICAL EXPRESSION DEFINITION */
+	/* Like numerical expressions, comparison definition is initiated by the lowest priority expressions, logical AND and logical OR. */
 	comparison = {negation} negation
 		| {and_comparison} comparison log_and negation
 		| {or_comparison} comparison log_or negation;
+	
+	/* Moving on to logical Negation. */ 
+	negation = {logical_value} logical_value 
+	| {neg} negation log_not logical_value;
+	
+	/* And lastly, boolean literals and simple comparison expressions */
+	logical_value = {true} true | {false} false  
+	| {ex_cmp_exp} [ex1]:expression one_comparison [ex2]:expression;
 
-	negation = {kati} kati |
-		{neg} negation log_not kati;
+	one_comparison = {gt} greater_than 
+	| {lt} less_than 
+	| {ge} great_eq 
+	| {le} less_eq 
+	| {ne} not_eq 
+	| {eq} eq;
 
-	kati = {true} true | {false} false  |
-			{ex_cmp_exp} [ex1]:expression one_comparison [ex2]:expression;
-
-	one_comparison = {gt} greater_than | {lt} less_than | {ge} great_eq | {le} less_eq | {ne} not_eq | {eq} eq;
-
-
-
-
-
+	/* MISCELLANEOUS DEFINITIONS */
 	function_call = identifier l_par arglist? r_par;
 	arglist = expression expression_list*;
-	value = 
-		{id_func} identifier dot function_call |
-		{num} number |
-		{str_double} string |
-		{str_single} string_s |
-		{none} none|
-		{id} id |
-		{parentheses} l_par numerical_expression r_par;
+	value = {id_func} identifier dot function_call 
+	| {num} number 
+	| {str_double} string 
+	| {str_single} string_s 
+	| {none} none
+	| {id} id 
+	| {parentheses} l_par numerical_expression r_par;
 
 	identifier = id;
 
-	operate_assign = {ass} assign | {sass} sub_assign | {dass} div_assign;
+	operate_assign = {ass} assign 
+	| {sass} sub_assign 
+	| {dass} div_assign;
 
-	minimax = {max} max | {min} min;
+	minimax = {max} max 
+	| {min} min;
+
 	expression_list = comma [ex2]:expression;
 	comma_value = comma value;
