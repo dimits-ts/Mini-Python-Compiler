@@ -2,7 +2,7 @@ import java.io.*;
 import minipython.lexer.Lexer;
 import minipython.node.Token;
 
-public class LexerTest1 {
+public class LexerTest {
 	public static void main(String[] args) 	{
 		try {
 			Lexer lexer = new Lexer(
