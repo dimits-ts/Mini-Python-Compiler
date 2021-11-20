@@ -135,9 +135,9 @@ Productions
 	more_identifiers = comma identifier import_as?;
 	id_dot = identifier dot;
 
-	comparison = {negation} negation |
-		{and_comparison} comparison log_and negation |
-		{or_comparison} comparison log_or negation;
+	comparison = {negation} negation
+		| {and_comparison} comparison log_and negation
+		| {or_comparison} comparison log_or negation;
 
 	negation = {kati} kati |
 		{neg} negation log_not kati;
@@ -169,50 +169,3 @@ Productions
 	minimax = {max} max | {min} min;
 	expression_list = comma [ex2]:expression;
 	comma_value = comma value;
-
-
-
-
-/*
-expression = {multiplication} multiplication |
-					{addition} expression plus multiplication|
-					{subtraction} expression minus multiplication;
-					
-	multiplication = {something} something | 
-						  {multiplication} multiplication mult something;
-
-	something ={identifier}id|
-				  {numb}number|
-				  {par} l_par expression r_par;
-
-not B or A
-
-((not B) or A)
-(not (B or A))
-
-andornotcomparison = {negation} negation |
-	{and_comparison} andornotcomparison and negation |
-	{or_comparison} andornotcomparison or negation;
-
-negation = {kati} kati |
-	{neg} negation not kati;
-
-kati = {true} true | {false} false  |
-		{ex_cmp_exp} [ex1]:expression one_comparison [ex2]:expression;
-*/
-				  
-				  
-				  
-				  
-				  
-				  
-				  
-/*
-	  SHIFT/REDUCE conflict
-		expression = {multiplication} multiplication |
-					{addition} [e1]:expression op_add [e2]:expression|
-					{subtraction} expression op_sub multiplication;
-
-1 + 2 * 3 ** 4 / 5 - 6 % 7 + 8
-1 + (2 * (3 ** 4) / 5) - (6 % 7) + 8
-*/
