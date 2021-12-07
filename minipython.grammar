@@ -18,6 +18,7 @@ Helpers
 	str_literal_s = [not_eol - 39];
 
 Tokens
+	/* OPERATOR DEFINITIONS */
 	tab = 9;
 	great_eq = '>=';
 	less_eq = '<=';
@@ -46,6 +47,7 @@ Tokens
 	double_quote = '"';
 	single_quote = 39;
 
+	/* KEYWORD DEFINITION */
 	true = 'true';
 	false = 'false';
 	def = 'def';
@@ -67,6 +69,7 @@ Tokens
 	log_not = 'not';
 	none = 'None';
 	
+	/* IDENTIFIER AND LITERAL DEFINITION */
 	eoltoken = eol;
 
 	blank = (' ' | lf | cr);
@@ -84,7 +87,8 @@ Productions
     more_commands = eoltoken command;
     command = {func} function | {stat} statement;
 	
-	/* FUNCTION DEFINITION */
+
+	/*FUNCTION DEFINITION */
 	function = def identifier l_par argument? r_par semi statement;
 	argument = identifier default_value? rest*;
 	default_value = assign value;
@@ -95,7 +99,7 @@ Productions
 	| {while} tab* while comparison semi statement 
 	| {for} tab* for [id1]:identifier in [id2]:identifier semi statement 
 	| {return} tab* return expression 
-	| {print} tab* print expression expression_list* 
+	| {print} tab* print expression expression_list*
 	| {assign_var} tab* identifier operate_assign expression 
 	| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression 
 	| {assertion} tab* assert [ex1]:expression expression_list? 
@@ -151,6 +155,7 @@ Productions
 
 	one_comparison = {gt} greater_than | {lt} less_than | {ge} great_eq | {le} less_eq | {ne} not_eq | {eq} eq;
 
+
 	/* MISCELLANEOUS DEFINITIONS */
 	function_call = identifier l_par arglist? r_par;
 	arglist = expression expression_list*;
@@ -167,9 +172,15 @@ Productions
 	| {minimax} minimax l_par value comma_value* r_par 
 	| {brackets} l_br expression expression_list* r_br;
 		
+
 	identifier = id;
 
-	operate_assign = {ass} assign | {sass} sub_assign | {dass} div_assign;
+	operate_assign = {ass} assign 
+	| {sass} sub_assign 
+	| {dass} div_assign;
+
+	minimax = {max} max 
+	| {min} min;
 
 	minimax = {max} max | {min} min;
 	expression_list = comma expression;
