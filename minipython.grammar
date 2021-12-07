@@ -14,6 +14,8 @@ Helpers
 	all = [0..127];
 	eol = lf | cr | cr lf ;
 	not_eol = [all - [cr + lf]];
+	str_literal = [not_eol - '"'];
+	str_literal_s = [not_eol - 39];
 
 Tokens
 	/* OPERATOR DEFINITIONS */
@@ -74,17 +76,17 @@ Tokens
 	line_comment = '#' not_eol* eol;
 	number = digit+ | (digit+ '.' digit+);
 	id = letter (letter | digit)*;
-	string = '"'not_eol* '"';
-	string_s = 39 not_eol* 39;
+	string = 34 str_literal* 34;
+	string_s = 39 str_literal_s* 39;
 
 Ignored Tokens
 	blank, line_comment;
 
 Productions
-	goal = command*;
-	command = {func} function eoltoken 
-	| {stat} statement eoltoken;
-
+	goal = command more_commands*; 
+    more_commands = eoltoken command;
+    command = {func} function | {stat} statement;
+	
 
 	/*FUNCTION DEFINITION */
 	function = def identifier l_par argument? r_par semi statement;
@@ -97,7 +99,7 @@ Productions
 	| {while} tab* while comparison semi statement 
 	| {for} tab* for [id1]:identifier in [id2]:identifier semi statement 
 	| {return} tab* return expression 
-	| {print} tab* print [ex1]:expression expression_list* 
+	| {print} tab* print expression expression_list*
 	| {assign_var} tab* identifier operate_assign expression 
 	| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression 
 	| {assertion} tab* assert [ex1]:expression expression_list? 
@@ -105,20 +107,14 @@ Productions
 	| {import_statement} tab* import_stmt 
 	| {empty_line} tab*;
 
-	/* GENERAL EXPRESSION DEFINITION */
-	expression ={num_exp} numerical_expression 
-	| {id_bracket} identifier l_br expression r_br 
-	| {func_call} function_call 
-	| {len_exp} length l_par expression r_par 
-	| {minimax} minimax l_par value comma_value* r_par 
-	| {brackets} l_br [ex1]:expression expression_list* r_br;
+	/* EXPRESSION DEFINITION */
+	expression =
+		{num_exp} numerical_expression;
 
-
-	/* NUMERICAL EXPRESSION DEFINITION */
 	/* First the lowest priority expression aka addition and subtraction. */
 	numerical_expression = res2 
 	| {addition} numerical_expression op_add res2 
-	|	{subtraction} numerical_expression op_sub res2;
+	| {subtraction} numerical_expression op_sub res2;
 
 	/* Moving on to multiplication, division and modulo which are higher up in the priority order. */
 	res2 = res3 
@@ -126,10 +122,9 @@ Productions
 	| {division} res2 op_div res3 
 	| {modulo} res2 op_mod res3;
 
-	/* Lastly, in the highest priority order, the exponentiation and number literal/identifier definition. */ 
+	/* Lastly, in the highest priority order, the exponentiation and number literal/identifier definition. */
 	res3 = value 
 	| {exponentiation} res3 op_exp value;
-	
 
 	/* IMPORT STATEMENTS */
 	import_stmt = {import_module} import module import_as? more_modules* 
@@ -143,27 +138,23 @@ Productions
 	more_identifiers = comma identifier import_as?;
 	id_dot = identifier dot;
 
-
 	/* LOGICAL EXPRESSION DEFINITION */
 	/* Like numerical expressions, comparison definition is initiated by the lowest priority expressions, logical AND and logical OR. */
 	comparison = {negation} negation
-		| {and_comparison} comparison log_and negation
-		| {or_comparison} comparison log_or negation;
-	
+	| {and_comparison} comparison log_and negation
+	| {or_comparison} comparison log_or negation;
+
 	/* Moving on to logical Negation. */ 
 	negation = {logical_value} logical_value 
-	| {neg} negation log_not logical_value;
-	
+	| {neg} log_not logical_value;
+
 	/* And lastly, boolean literals and simple comparison expressions */
-	logical_value = {true} true | {false} false  
+	logical_value = {true} true 
+	| {false} false  
 	| {ex_cmp_exp} [ex1]:expression one_comparison [ex2]:expression;
 
-	one_comparison = {gt} greater_than 
-	| {lt} less_than 
-	| {ge} great_eq 
-	| {le} less_eq 
-	| {ne} not_eq 
-	| {eq} eq;
+	one_comparison = {gt} greater_than | {lt} less_than | {ge} great_eq | {le} less_eq | {ne} not_eq | {eq} eq;
+
 
 	/* MISCELLANEOUS DEFINITIONS */
 	function_call = identifier l_par arglist? r_par;
@@ -174,7 +165,13 @@ Productions
 	| {str_single} string_s 
 	| {none} none
 	| {id} id 
-	| {parentheses} l_par numerical_expression r_par;
+	| {parentheses} l_par numerical_expression r_par 
+	| {id_bracket} identifier l_br expression r_br 
+	| {func_call} function_call 
+	| {len_exp} length l_par expression r_par 
+	| {minimax} minimax l_par value comma_value* r_par 
+	| {brackets} l_br expression expression_list* r_br;
+		
 
 	identifier = id;
 
@@ -185,5 +182,6 @@ Productions
 	minimax = {max} max 
 	| {min} min;
 
-	expression_list = comma [ex2]:expression;
+	minimax = {max} max | {min} min;
+	expression_list = comma expression;
 	comma_value = comma value;
