@@ -1,0 +1,1 @@
+sablecc minipython.grammar && javac ParserTest.java && java ParserTest example.py
