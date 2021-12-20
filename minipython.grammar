@@ -123,10 +123,11 @@ Productions
 		| {modulo} res2 op_mod res3;
 
 	/* Lastly, in the highest priority order, the exponentiation and number literal/identifier definition. */
-	res3 = {res4} res4
-		| {exponentiation} res4 op_exp res3;/*[a]:res3 op_exp [b]:res3*/
+	res3 = {other_expression} other_expression
+		| {exponentiation} other_expression op_exp res3;
 
-	res4 = {expr} l_par expression r_par
+	/* other expression */
+	other_expression = {expr} l_par expression r_par
 		| {id_bracket} identifier l_br expression r_br 
 		| {func_call} function_call 
 		| {value} value
