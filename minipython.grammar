@@ -106,14 +106,15 @@ Productions
 		| {import_statement} tab* import_stmt
 		| {empty_line} tab*;
 
-	/* EXPRESSION DEFINITION */
-	expression =
-		{num_exp} numerical_expression;
+	operate_assign = {assign} assign
+		| {sub_assign} sub_assign
+		| {div_assign} div_assign;
 
+	/* EXPRESSION DEFINITION */
 	/* First the lowest priority expression aka addition and subtraction. */
-	numerical_expression = {res2} res2 
-		| {addition} numerical_expression op_add res2 
-		| {subtraction} numerical_expression op_sub res2;
+	expression = {res2} res2 
+		| {addition} expression op_add res2 
+		| {subtraction} expression op_sub res2;
 
 	/* Moving on to multiplication, division and modulo which are higher up in the priority order. */
 	res2 = {res3} res3 
@@ -122,8 +123,20 @@ Productions
 		| {modulo} res2 op_mod res3;
 
 	/* Lastly, in the highest priority order, the exponentiation and number literal/identifier definition. */
-	res3 = {value} value 
-		| {exponentiation} res3 op_exp value;
+	res3 = {res4} res4
+		| {exponentiation} res4 op_exp res3;/*[a]:res3 op_exp [b]:res3*/
+
+	res4 = {expr} l_par expression r_par
+		| {id_bracket} identifier l_br expression r_br 
+		| {func_call} function_call 
+		| {value} value
+		| {id} identifier
+		| {len_exp} length l_par expression r_par 
+		| {minimax} minimax l_par value comma_value* r_par
+		| {brackets} l_br expression expression_list* r_br;
+
+	minimax = {max} max | {min} min;
+	comma_value = {value_list} comma value;
 
 	/* IMPORT STATEMENTS */
 	import_stmt = {import_module} import module import_as? more_modules* 
@@ -164,21 +177,9 @@ Productions
 		| {num} number 
 		| {str_double} string 
 		| {str_single} string_s 
-		| {none} none
-		| {id} id 
-		| {parentheses} l_par numerical_expression r_par 
-		| {id_bracket} identifier l_br expression r_br 
-		| {func_call} function_call 
-		| {len_exp} length l_par expression r_par 
-		| {minimax} minimax l_par value comma_value* r_par 
-		| {brackets} l_br expression expression_list* r_br;
+		| {none} none;
 
 	identifier = {identifier} id;
 
-	operate_assign = {assign} assign 
-		| {sub_assign} sub_assign 
-		| {div_assign} div_assign;
 
-	minimax = {max} max | {min} min;
 	expression_list = {expression_list} comma expression;
-	comma_value = {value_list} comma value;
