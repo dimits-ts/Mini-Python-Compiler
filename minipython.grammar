@@ -18,8 +18,9 @@ Helpers
 	str_literal_s = [not_eol - 39];
 
 Tokens
-	/* OPERATOR DEFINITIONS */
 	tab = 9;
+
+	/* Comparison Operators */
 	great_eq = '>=';
 	less_eq = '<=';
 	not_eq = '!=';
@@ -29,6 +30,7 @@ Tokens
 	less_than = '<';
 	greater_than = '>';
 
+	/* Mathematical Operators */
 	op_add = '+';
 	op_sub = '-';
 	op_exp = '**';
@@ -37,17 +39,18 @@ Tokens
 	op_mod = '%';
 	assign = '=';
 
+	/* Other Symbols */
 	l_par = '(';
 	r_par = ')';
 	l_br = '[';
 	r_br = ']';
 	comma =',';
 	dot = '.';
-	semi = ':';
+	colon = ':';
 	double_quote = '"';
 	single_quote = 39;
 
-	/* KEYWORD DEFINITION */
+	/* Keywords */
 	true = 'true';
 	false = 'false';
 	def = 'def';
@@ -64,123 +67,129 @@ Tokens
 	import = 'import';
 	as = 'as';
 	from = 'from';
-	log_and = 'and';
-	log_or = 'or';
-	log_not = 'not';
+	logical_and = 'and';
+	logical_or = 'or';
+	logical_not = 'not';
 	none = 'None';
-	
-	/* IDENTIFIER AND LITERAL DEFINITION */
-	eoltoken = eol;
 
+	/* Other Tokens */
+	eoltoken = eol;
 	blank = (' ' | lf | cr);
 	line_comment = '#' not_eol* eol;
-	number = digit+ | (digit+ '.' digit+);
+	num = digit+ | (digit+ '.' digit+);
 	id = letter (letter | digit)*;
-	string = 34 str_literal* 34;
-	string_s = 39 str_literal_s* 39;
+	string_double_quotes = 34 str_literal* 34;
+	string_single_quotes = 39 str_literal_s* 39;
 
 Ignored Tokens
 	blank, line_comment;
 
 Productions
+	/* Goal */
 	goal = {commands} command more_commands*;
-    command = {func} function | {stat} statement;
-    more_commands = {more_commands} eoltoken command;
+	command = {function} function | {statement} statement;
+	more_commands = {more_commands} eoltoken command;
 
-	/*FUNCTION DEFINITION */
-	function = {func_def} def identifier l_par argument? r_par semi statement;
-	argument = {argument} identifier default_value? rest*;
+	/* Function + Argument */
+	function = {func_def} def identifier l_par argument? r_par colon statement;
+	argument = {argument} identifier default_value? argument_list*;
 	default_value = {default_value} assign value;
-	rest = {rest_arguments} comma identifier default_value?;
+	argument_list = {argument_list} comma identifier default_value?;
 
-	/* STATEMENT DEFINITION */
-	statement = {if} tab* if comparison semi statement 
-		| {while} tab* while comparison semi statement 
-		| {for} tab* for [id1]:identifier in [id2]:identifier semi statement 
-		| {return} tab* return expression 
+	/* Statement */
+	statement = {if} tab* if comparison colon statement
+		| {while} tab* while comparison colon statement
+		| {for} tab* for [id1]:identifier in [id2]:identifier colon statement
+		| {return} tab* return expression
 		| {print} tab* print expression expression_list*
-		| {assign_var} tab* identifier operate_assign expression 
-		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression 
-		| {assertion} tab* assert [ex1]:expression expression_list? 
-		| {func_call} tab* function_call 
-		| {import_statement} tab* import_stmt
+		| {assign_var} tab* identifier operate_assign expression
+		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression
+		| {assertion} tab* assert expression expression_list?
+		| {func_call} tab* function_call
+		/* Note that the Import Statement is NOT included in BNF */
+		| {import_statement} tab* import_statement
 		| {empty_line} tab*;
 
 	operate_assign = {assign} assign
 		| {sub_assign} sub_assign
 		| {div_assign} div_assign;
 
-	/* EXPRESSION DEFINITION */
-	/* First the lowest priority expression aka addition and subtraction. */
-	expression = {res2} res2 
-		| {addition} expression op_add res2 
+	/* Expression */
+		/* First the lowest priority (addition and subtraction) */
+	expression = {res2} res2
+		| {addition} expression op_add res2
 		| {subtraction} expression op_sub res2;
 
-	/* Moving on to multiplication, division and modulo which are higher up in the priority order. */
-	res2 = {res3} res3 
-		| {multiplication} res2 op_mul res3 
-		| {division} res2 op_div res3 
+		/* Then second lowest (multiplication, division and modulo) */
+	res2 = {res3} res3
+		| {multiplication} res2 op_mul res3
+		| {division} res2 op_div res3
 		| {modulo} res2 op_mod res3;
 
-	/* Lastly, in the highest priority order, the exponentiation and number literal/identifier definition. */
+		/* Then the highest (exponentiation) */
 	res3 = {other_expression} other_expression
 		| {exponentiation} other_expression op_exp res3;
 
-	/* other expression */
-	other_expression = {expr} l_par expression r_par
-		| {id_bracket} identifier l_br expression r_br 
-		| {func_call} function_call 
+		/* Lastly, each of the above expressions can be one of the following */
+	other_expression = {id_bracket} identifier l_br expression r_br
+		| {func_call} function_call
 		| {value} value
 		| {id} identifier
-		| {len_exp} length l_par expression r_par 
-		| {minimax} minimax l_par value comma_value* r_par
-		| {brackets} l_br expression expression_list* r_br;
+		| {length_expr} length l_par expression r_par
+		| {minimax} minimax l_par value value_list* r_par
+		| {list_definition} l_br expression expression_list* r_br;
 
 	minimax = {max} max | {min} min;
-	comma_value = {value_list} comma value;
+	value_list = {value_list} comma value;
 
-	/* IMPORT STATEMENTS */
-	import_stmt = {import_module} import module import_as? more_modules* 
-		| {from_module_import} from module import identifier import_as? more_identifiers*;
+	/* Import */
+	import_statement = {import_module} import module import_as? module_list*
+		| {from_module_import} from module import identifier import_as? identifier_list*;
 
-	module = {module_dot} id_dot* identifier;
-	import_as = {as_id} as identifier;
-	more_modules = {module_list} comma module import_as?;
+	/* Module */
+	module = {module} id_dot* identifier;
+	import_as = {import_as} as identifier;
+	module_list = {module_list} comma module import_as?;
 
 	id_dot = {id_dot} identifier dot;
-	more_identifiers = {identifier_list} comma identifier import_as?;
+	identifier_list = {identifier_list} comma identifier import_as?;
 
-	/* LOGICAL EXPRESSION DEFINITION */
-	/* Like numerical expressions, comparison definition is initiated by the lowest priority expressions, logical AND and logical OR. */
+	/* Comparison */
+		/* First the lowest priority (and, or) */
 	comparison = {negation} negation
-		| {and_comparison} comparison log_and negation
-		| {or_comparison} comparison log_or negation;
+		| {and_comparison} comparison logical_and negation
+		| {or_comparison} comparison logical_or negation;
 
-	/* Moving on to logical Negation. */ 
-	negation = {logical_value} logical_value 
-		| {negation} log_not logical_value;
+		/* Then the highest (not) */
+	negation = {logical_value} logical_value
+		| {negation} logical_not logical_value;
 
-	/* And lastly, boolean literals and simple comparison expressions */
-	logical_value = {true} true | {false} false  
-		| {exp_cmp_exp} [ex1]:expression one_comparison [ex2]:expression;
+		/* Lastly, boolean literals and simple comparison expressions */
+	logical_value = {true} true | {false} false
+		| {exp_cmp_exp} [ex1]:expression single_comparison [ex2]:expression;
 
-	one_comparison = {gt} greater_than
+	single_comparison =
+		  {gt} greater_than
 		| {lt} less_than
 		| {ge} great_eq
 		| {le} less_eq
 		| {ne} not_eq
 		| {eq} eq;
 
-	/* MISCELLANEOUS DEFINITIONS */
+	/* Function Call + Arglist */
 	function_call = {func_call} identifier l_par arglist? r_par;
 	arglist = {arg_list} expression expression_list*;
-	value = {id_func} identifier dot function_call 
-		| {num} number 
-		| {str_double} string 
-		| {str_single} string_s 
+
+	/* Value */
+	value = {id_func} identifier dot function_call
+		| {number} number
+		| {str_double} string_double_quotes
+		| {str_single} string_single_quotes
 		| {none} none;
 
+	/* Number + Identifier */
+	number = {num} num;
 	identifier = {identifier} id;
 
-
+	/* Leftover production that used at many places */
 	expression_list = {expression_list} comma expression;
