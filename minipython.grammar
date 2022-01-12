@@ -119,20 +119,20 @@ Productions
 	/* Expression */
 		/* First the lowest priority (addition and subtraction) */
 	expression {-> expr} = {res2} res2 {-> res2.expr}
-		| {addition} expression op_add res2{-> New expr.addition(expression.expr, res2.expr)}
-		| {subtraction} expression op_sub res2{-> New expr.subtraction(expression.expr, res2.expr)};
+		| {addition} expression op_add res2 {-> New expr.add(expression.expr, res2.expr)}
+		| {subtraction} expression op_sub res2 {-> New expr.sub(expression.expr, res2.expr)};
 
 		/* Then second lowest (multiplication, division and modulo) */
 	res2 {-> expr} = {res3} res3 {-> res3.expr }
-		| {multiplication} res2 op_mul res3 {-> New expr.multiplication(res2.expr, res3.expr) }
-		| {division} res2 op_div res3 {-> New expr.division(res2.expr, res3.expr) }
-		| {modulo} res2 op_mod res3 {-> New expr.modulo(res2.expr, res3.expr) };
+		| {multiplication} res2 op_mul res3 {-> New expr.mul(res2.expr, res3.expr) }
+		| {division} res2 op_div res3 {-> New expr.div(res2.expr, res3.expr) }
+		| {modulo} res2 op_mod res3 {-> New expr.mod(res2.expr, res3.expr) };
 
 		/* Then the highest (exponentiation) */
-	res3 {->expr} = {other_expression} other_expression {-> other_expression.expr}
-		| {exponentiation} other_expression op_exp res3 {-> New expr.exponentiation(other_expression.expr, res3.expr)};
+	res3 {-> expr} = {other_expression} other_expression {-> other_expression.expr}
+		| {exponentiation} other_expression op_exp res3 {-> New expr.exp(other_expression.expr, res3.expr)};
+
 		/* Lastly, each of the above expressions can be one of the following */
-		
 	other_expression {-> expr} = {id_bracket} identifier l_br expression r_br{-> New expr.id_bracket(identifier, expression.expr)}
 		| {func_call} function_call {-> New expr.func_call(function_call)}
 		| {value} value {-> New expr.value(value)}
@@ -230,12 +230,12 @@ Abstract Syntax Tree
 /*]*/
 
 	expr =
-		  {addition} [expr1]:expr [expr2]:expr
-		| {subtraction} [expr1]:expr [expr2]:expr
-		| {multiplication} [expr1]:expr [expr2]:expr
-		| {division} [expr1]:expr [expr2]:expr
-		| {modulo} [expr1]:expr [expr2]:expr
-		| {exponentiation} [base]:expr [power]:expr
+		  {add} [ex1]:expr [ex2]:expr
+		| {sub} [ex1]:expr [ex2]:expr
+		| {mul} [ex1]:expr [ex2]:expr
+		| {div} [ex1]:expr [ex2]:expr
+		| {mod} [ex1]:expr [ex2]:expr
+		| {exp} [base]:expr [power]:expr
 		| {id_bracket} identifier expr
 		| {value} value
 		| {id} identifier
@@ -243,10 +243,11 @@ Abstract Syntax Tree
 		| {list_definition} expr*
 		| {func_call} function_call;
 		
-		/*
+	/*
 	module = {module} identifier*;
 	moduleas = module identifier*;
-	identifier_as = [id1]:identifier [id2]:identifier*;*/
+	identifier_as = [id1]:identifier [id2]:identifier*;
+	*/
 
 	function_call = {fc} identifier expr*;
 
@@ -272,6 +273,6 @@ Abstract Syntax Tree
 	comparison = {negation} comparison
 		| {and} [comp1]:comparison [comp2]:comparison
 		| {or} [comp1]:comparison [comp2]:comparison
-		| {single} [expr1]:expr single_comparison [expr2]:expr
+		| {single} [ex1]:expr single_comparison [ex2]:expr
 		| {true}
 		| {false};
