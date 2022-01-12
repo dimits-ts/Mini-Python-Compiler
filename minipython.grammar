@@ -104,7 +104,7 @@ Productions
 		| {for} tab* for [id1]:identifier in [id2]:identifier colon statement {-> New statement.for(id1, id2, statement)}
 		| {return} tab* return expression {-> New statement.return(expression.expr)}
 		| {print} tab* print expression expression_list* {-> New statement.print([expression.expr expression_list.expr])}
-		| {assign_var} tab* identifier operate_assign expression {-> New statement.assign_var(identifier, expression.expr )}
+		| {assign_var} tab* identifier operate_assign expression {-> New statement.assign_var(identifier, operate_assign, expression.expr)}
 		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression {-> New statement.assign_array(identifier, ex1.expr, ex2.expr)}
 		| {assertion} tab* assert expression expression_list? {-> New statement.assertion([expression.expr  expression_list.expr])}
 		| {func_call} tab* function_call {-> New statement.func_call(function_call)}
@@ -112,9 +112,10 @@ Productions
 	  /*  | {import_statement} tab* import_statement {-> import_statement.statement}*/
 		| {empty_line} tab* {-> New statement.empty()};
 
-	operate_assign {-> } = {assign} assign {-> }
-		| {sub_assign} sub_assign {-> }
-		| {div_assign} div_assign {-> };
+	operate_assign =
+		  {assign} assign {-> New operate_assign.assign(assign)}
+		| {sub_assign} sub_assign {-> New operate_assign.sub_assign(sub_assign)}
+		| {div_assign} div_assign {-> New operate_assign.div_assign(div_assign)};
 
 	/* Expression */
 		/* First the lowest priority (addition and subtraction) */
@@ -129,17 +130,17 @@ Productions
 		| {modulo} res2 op_mod res3 {-> New expr.mod(res2.expr, res3.expr) };
 
 		/* Then the highest (exponentiation) */
-	res3 {-> expr} = {other_expression} other_expression {-> other_expression.expr}
-		| {exponentiation} other_expression op_exp res3 {-> New expr.exp(other_expression.expr, res3.expr)};
+	res3 {-> expr} = {other_expr} other_expr {-> other_expr.expr}
+		| {exponentiation} other_expr op_exp res3 {-> New expr.exp(other_expr.expr, res3.expr)};
 
 		/* Lastly, each of the above expressions can be one of the following */
-	other_expression {-> expr} = {id_bracket} identifier l_br expression r_br{-> New expr.id_bracket(identifier, expression.expr)}
+	other_expr {-> expr} = {id_bracket} identifier l_br expression r_br {-> New expr.id_bracket(identifier, expression.expr)}
 		| {func_call} function_call {-> New expr.func_call(function_call)}
 		| {value} value {-> New expr.value(value)}
 		| {id} identifier {-> New expr.id(identifier)}
 		| {length_expr} length l_par expression r_par {-> expression.expr}
 		| {minimax} minimax l_par value value_list* r_par {-> New expr.minimax([value value_list.value])}
-		| {list_definition} l_br expression expression_list* r_br {-> New expr.list_definition([expression.expr expression_list.expr])};
+		| {ls_def} l_br expression expression_list* r_br {-> New expr.ls_def([expression.expr expression_list.expr])};
 
 	minimax = {max} max {->New minimax.max()} | {min} min {-> New minimax.min()};
 	value_list {->value} = {value_list} comma value {-> value};
@@ -162,19 +163,21 @@ Productions
 
 	/* Comparison */
 		/* First the lowest priority (and, or) */
-	comparison = {negation} negation {-> New comparison.negation(negation.comparison)}
+	comparison =
+		  {negation} negation {-> negation.comparison}
 		| {and_comparison} comparison logical_and negation {-> New comparison.and(comparison, negation.comparison)}
 		| {or_comparison} comparison logical_or negation {-> New comparison.or(comparison, negation.comparison)};
 
 		/* Then the highest (not) */
-	negation{-> comparison} = {logical_value} logical_value {-> logical_value.comparison}
-		| {negation} logical_not logical_value {-> New comparison.negation(logical_value.comparison)};
+	negation {-> comparison} =
+		  {logical_value} logical_value {-> logical_value.comparison}
+		| {negation} logical_not logical_value {-> New comparison.neg(logical_value.comparison)};
 
 		/* Lastly, boolean literals and simple comparison expressions */
-	logical_value{-> comparison} = 
-		{true} true {-> New comparison.true()} 
+	logical_value {-> comparison} = 
+		  {true} true {-> New comparison.true()} 
 		| {false} false {-> New comparison.false()}
-		| {exp_cmp_exp} [ex1]:expression single_comparison [ex2]:expression {-> New comparison.single(ex1.expr, single_comparison, ex2.expr)};
+		| {expr_compare} [ex1]:expression single_comparison [ex2]:expression {-> New comparison.single(ex1.expr, single_comparison, ex2.expr)};
 
 	single_comparison =
 		  {gt} greater_than {-> New single_comparison.gt()}
@@ -190,14 +193,15 @@ Productions
 	arglist {-> expr*} = {arg_list} expression expression_list* {-> [expression.expr expression_list.expr]};
 
 	/* Value */
-	value {-> value} = {id_func} identifier dot function_call {-> New value.id_func_call(identifier, function_call)}
+	value =
+		  {id_func} identifier dot function_call {-> New value.id_func_call(identifier, function_call)}
 		| {number} number {-> number.value}
 		| {str_double} string_double_quotes{-> New value.string1(string_double_quotes)}
 		| {str_single} string_single_quotes{-> New value.string2(string_single_quotes)}
 		| {none} none {-> New value.none()};
 
 	/* Number + Identifier */
-	number {-> value} = {num} num{-> New value.number(num)};
+	number {-> value} = {num} num {-> New value.number(num)};
 	identifier = {identifier} id {-> New identifier.id(id)};
 
 	/* Leftover production that used at many places */
@@ -219,7 +223,7 @@ Abstract Syntax Tree
 		| {for} [id1]:identifier [id2]:identifier statement
 		| {return} expr
 		| {print} expr*
-		| {assign_var} identifier expr
+		| {assign_var} identifier operate_assign expr
 		| {assign_array} identifier [ex1]:expr [ex2]:expr
 		| {assertion} expr*
 		| {func_call} function_call
@@ -228,6 +232,10 @@ Abstract Syntax Tree
 		| {from_import_statement} module identifier_as**/
 		| {empty} ;
 /*]*/
+	operate_assign =
+		  {assign} assign
+		| {sub_assign} sub_assign
+		| {div_assign} div_assign;
 
 	expr =
 		  {add} [ex1]:expr [ex2]:expr
@@ -240,7 +248,7 @@ Abstract Syntax Tree
 		| {value} value
 		| {id} identifier
 		| {minimax} value*
-		| {list_definition} expr*
+		| {ls_def} expr*
 		| {func_call} function_call;
 		
 	/*
@@ -270,7 +278,7 @@ Abstract Syntax Tree
 		| {ne}
 		| {eq};
 	
-	comparison = {negation} comparison
+	comparison = {neg} comparison
 		| {and} [comp1]:comparison [comp2]:comparison
 		| {or} [comp1]:comparison [comp2]:comparison
 		| {single} [ex1]:expr single_comparison [ex2]:expr
