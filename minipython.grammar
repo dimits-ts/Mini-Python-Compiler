@@ -86,18 +86,19 @@ Ignored Tokens
 
 Productions
 	/* Goal */
-	goal = {commands} command more_commands* {-> New goal([command more_commands.command])};
+	goal = {commands} [com]:command [coms]:more_commands* {-> New goal([com coms.command])};
 	command = 
-		  {function} function {-> New command.function(function)}
-		| {statement} statement {-> New command.statement(statement)};
-	more_commands {-> command} = {more_commands} eoltoken command {-> command};
+		  {function} [func]:function {-> New command.function(func)}
+		| {statement} [stmt]:statement {-> New command.statement(stmt)};
+	more_commands {-> command} = {more_commands} eoltoken [com]:command {-> com};
 
 	/* Function + Argument */
-	function = {func_def} def identifier l_par argument? r_par colon statement {-> New function(identifier, [argument], statement) };
-	argument = {argument} identifier default_value? argument_list* {-> New argument(identifier, default_value.value)};
-	default_value {-> value} = {default_value} assign value {-> New value.val(value)};
-	argument_list {-> argument} = {argument_list} comma identifier default_value? {-> New argument(identifier, default_value.value)};
+	function = {func_def} def [id]:identifier l_par [arg]:argument? r_par colon [stmt]:statement {-> New function(id, [arg], stmt) };
+	argument = {argument} [id]:identifier [dv]:default_value? [arg_ls]:argument_list* {-> New argument(id, dv.value, [arg_ls])};
+	default_value {-> value} = {default_value} assign [val]:value {-> New value.val(val)};
+	argument_list {-> argument} = {argument_list} comma [id]:identifier [dv]:default_value? {-> New argument(id, dv.value)};
 
+/*[*/
 	/* Statement */
 	statement =
 		  {if} tab* if [cmp]:comparison colon [stmt]:statement {-> New statement.if(cmp, stmt)}
@@ -109,8 +110,10 @@ Productions
 		| {assign_lst} tab* [id]:identifier l_br [exp1]:expression r_br assign [exp2]:expression {-> New statement.assign_lst(id, exp1.expr, exp2.expr)}
 		| {assertion} tab* assert [exp]:expression [exp_ls]:expression_list? {-> New statement.assertion([exp.expr exp_ls.expr])}
 		| {func_call} tab* [fc]:function_call {-> New statement.func_call(fc)}
-		/* Note that the Import Statement is NOT included in BNF */
-	  /*  | {import_statement} tab* import_statement {-> import_statement.statement}*/
+		/* Note that the Import Statement is NOT included in BNF as a Statement */
+		/*  
+		| {import_statement} tab* import_statement {-> import_statement.statement}
+		*/
 		| {empty_line} tab* {-> New statement.empty()};
 
 	operate_assign =
@@ -167,7 +170,6 @@ Productions
 	identifier_list {-> identifier} = {identifier_list} comma identifier import_as? ;
 */
 
-/*[*/
 
 	/* Comparison */
 		/* First the lowest priority (and, or) */
@@ -214,6 +216,8 @@ Productions
 	/* Leftover production that used at many places */
 	expression_list {-> expr} = {expression_list} comma [exp]:expression {-> exp.expr};
 
+/*#*/
+
 Abstract Syntax Tree
 	goal = command*;
 	command = {function} function | {statement} statement;
@@ -230,7 +234,7 @@ Abstract Syntax Tree
 		| {assign_lst} identifier [ex1]:expr [ex2]:expr
 		| {assertion} expr*
 		| {func_call} function_call
-		/* Note that the Import Statement is NOT included in BNF */
+		/* Note that the Import Statement is NOT included in BNF as a Statement */
 		/* 
 		| {import_module} moduleas*
 		| {from_import_statement} module identifier_as*
@@ -240,11 +244,11 @@ Abstract Syntax Tree
 	operate_assign =  {assign} | {sub_assign} | {div_assign};
 
 	expr =
-		  {add} [ex1]:expr [ex2]:expr
-		| {sub} [ex1]:expr [ex2]:expr
-		| {mul} [ex1]:expr [ex2]:expr
-		| {div} [ex1]:expr [ex2]:expr
-		| {mod} [ex1]:expr [ex2]:expr
+		  {add} [exp1]:expr [exp2]:expr
+		| {sub} [exp1]:expr [exp2]:expr
+		| {mul} [exp1]:expr [exp2]:expr
+		| {div} [exp1]:expr [exp2]:expr
+		| {mod} [exp1]:expr [exp2]:expr
 		| {exp} [base]:expr [power]:expr
 		| {id_bracket} identifier expr
 		| {value} value
@@ -254,7 +258,6 @@ Abstract Syntax Tree
 		| {func_call} function_call;
 
 	minimax = {min} | {max};
-/*#*/
 /*]*/
 
 	/*
@@ -278,8 +281,8 @@ Abstract Syntax Tree
 	comparison_operator = {gt} | {lt} | {ge} | {le} | {ne} | {eq};
 	
 	comparison = {neg} comparison
-		| {and} [comp1]:comparison [comp2]:comparison
-		| {or} [comp1]:comparison [comp2]:comparison
-		| {single} [ex1]:expr comparison_operator [ex2]:expr
+		| {and} [cmp1]:comparison [cmp2]:comparison
+		| {or} [cmp1]:comparison [cmp2]:comparison
+		| {single} [exp1]:expr comparison_operator [exp2]:expr
 		| {true}
 		| {false};
