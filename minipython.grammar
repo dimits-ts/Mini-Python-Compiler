@@ -113,9 +113,9 @@ Productions
 		| {empty_line} tab* {-> New statement.empty()};
 
 	operate_assign =
-		  {assign} assign {-> New operate_assign.assign(assign)}
-		| {sub_assign} sub_assign {-> New operate_assign.sub_assign(sub_assign)}
-		| {div_assign} div_assign {-> New operate_assign.div_assign(div_assign)};
+		  {assign} assign {-> New operate_assign.assign()}
+		| {sub_assign} sub_assign {-> New operate_assign.sub_assign()}
+		| {div_assign} div_assign {-> New operate_assign.div_assign()};
 
 	/* Expression */
 		/* First the lowest priority (addition and subtraction) */
@@ -233,9 +233,9 @@ Abstract Syntax Tree
 		| {empty} ;
 /*]*/
 	operate_assign =
-		  {assign} assign
-		| {sub_assign} sub_assign
-		| {div_assign} div_assign;
+		  {assign}
+		| {sub_assign}
+		| {div_assign};
 
 	expr =
 		  {add} [ex1]:expr [ex2]:expr
