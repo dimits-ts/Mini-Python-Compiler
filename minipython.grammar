@@ -86,110 +86,195 @@ Ignored Tokens
 
 Productions
 	/* Goal */
-	goal = {commands} command more_commands*;
-	command = {function} function | {statement} statement;
-	more_commands = {more_commands} eoltoken command;
+	goal = {commands} command more_commands* {-> New goal([command more_commands.command])};
+	command = 
+		  {function} function {-> New command.function(function)}
+		| {statement} statement {-> New command.statement(statement)};
+	more_commands {-> command} = {more_commands} eoltoken command {-> command};
 
 	/* Function + Argument */
-	function = {func_def} def identifier l_par argument? r_par colon statement;
-	argument = {argument} identifier default_value? argument_list*;
-	default_value = {default_value} assign value;
-	argument_list = {argument_list} comma identifier default_value?;
+	function = {func_def} def identifier l_par argument? r_par colon statement {-> New function(identifier, [argument], statement) };
+	argument = {argument} identifier default_value? argument_list* {-> New argument(identifier, default_value.value)};
+	default_value {-> value} = {default_value} assign value {-> New value.val(value)};
+	argument_list {-> argument} = {argument_list} comma identifier default_value? {-> New argument(identifier, default_value.value)};
 
 	/* Statement */
-	statement = {if} tab* if comparison colon statement
-		| {while} tab* while comparison colon statement
-		| {for} tab* for [id1]:identifier in [id2]:identifier colon statement
-		| {return} tab* return expression
-		| {print} tab* print expression expression_list*
-		| {assign_var} tab* identifier operate_assign expression
-		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression
-		| {assertion} tab* assert expression expression_list?
-		| {func_call} tab* function_call
+	statement = {if} tab* if comparison colon statement {-> New statement.if(comparison, statement)}
+		| {while} tab* while comparison colon statement {-> New statement.while(comparison, statement)}
+		| {for} tab* for [id1]:identifier in [id2]:identifier colon statement {-> New statement.for(id1, id2, statement)}
+		| {return} tab* return expression {-> New statement.return(expression)}
+		| {print} tab* print expression expression_list* {-> New statement.print([expression expression_list.expression])}
+		| {assign_var} tab* identifier operate_assign expression {-> New statement.assign_var(identifier, operate_assign, expression)}
+		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression {-> New statement.assign_array(identifier, ex1, ex2)}
+		| {assertion} tab* assert expression expression_list? {-> New statement.assertion([expression expression_list])}
+		| {func_call} tab* function_call {-> New statement.func_call(function_call)}
 		/* Note that the Import Statement is NOT included in BNF */
-		| {import_statement} tab* import_statement
-		| {empty_line} tab*;
+	  /*  | {import_statement} tab* import_statement {-> import_statement.statement}*/
+		| {empty_line} tab* {-> New statement.empty()};
+
+	operate_assign = {assign} assign {-> New operate_assign.assign(assign)}
+		| {sub_assign} sub_assign {-> New operate_assign.sub_assign(sub_assign)}
+		| {div_assign} div_assign {-> New operate_assign.div_assign(div_assign)};
+
+/*[*/
+
+	/* Expression */
+		/* First the lowest priority (addition and subtraction) */
+	expression = {res2} res2 {-> res2.expression}
+		| {addition} expression op_add res2{-> New expression.addition(expression, res2.expression)}
+		| {subtraction} expression op_sub res2{-> New expression.subtraction(expression,res2.expression)};
+
+		/* Then second lowest (multiplication, division and modulo) */
+	res2{-> expression} = {res3} res3 {-> res3.expression }
+		| {multiplication} res2 op_mul res3 {-> New expression.multiplication(res2.expression, res3.expression) }
+		| {division} res2 op_div res3 {-> New expression.division(res2.expression, res3.expression) }
+		| {modulo} res2 op_mod res3 {-> New expression.modulo(res2.expression, res3.expression) };
+
+		/* Then the highest (exponentiation) */
+	res3{->expression} = {other_expression} other_expression {-> other_expression.expression}
+		| {exponentiation} other_expression op_exp res3 {-> New expression.exponentiation(other_expression.expression, res3.expression)};
+		/* Lastly, each of the above expressions can be one of the following */
+		
+	other_expression {-> expression} = {id_bracket} identifier l_br expression r_br{-> New expression.id_bracket(identifier,expression)}
+		| {func_call} function_call {-> New expression.func_call(function_call)}
+		| {value} value {-> New expression.value(value)}
+		| {id} identifier {-> New expression.id(identifier)}
+		| {length_expr} length l_par expression r_par {-> expression}
+		| {minimax} minimax l_par value value_list* r_par {-> New expression.minimax([value value_list.value])}
+		| {list_definition} l_br expression expression_list* r_br {-> New expression.list_definition([expression expression_list.expression])};
+
+	minimax = {max} max {->New minimax.max()} | {min} min {-> New minimax.min()};
+	value_list {->value} = {value_list} comma value {-> value};
+/*
+	 Import 
+	import_statement{->statement} =
+		  {import_module} import module import_as? module_list* {-> New statement.import_module([module.identifier import_as.identifier module_list.identifier])}
+		| {from_module_import} from module import identifier import_as? identifier_list* {-> New statement.from_import_statement(module, [identifier import_as.identifier identifier_list.identifier])};
+
+	 Module 
+	module {-> identifier*} = {module} id_dot* identifier {-> New identifier.identifier([id_dot.identifier identifier])};
+	import_as {-> identifier} = {import_as} as identifier {-> New identifier(identifier)};
+	module_list {-> identifier*} = {module_list} comma module import_as? {-> New identifier([identifier import_as])};
+
+	id_dot {->identifier} = {id_dot} identifier dot;
+	identifier_list {->identifier} = {identifier_list} comma identifier import_as? ;
+*/
+
+	/* Comparison */
+		/* First the lowest priority (and, or) */
+	comparison = {negation} negation {-> New comparison.negation(negation.comparison)}
+		| {and_comparison} comparison logical_and negation {-> New comparison.and(comparison, negation.comparison)}
+		| {or_comparison} comparison logical_or negation {-> New comparison.or(comparison, negation.comparison)};
+
+		/* Then the highest (not) */
+	negation{-> comparison} = {logical_value} logical_value {-> logical_value.comparison}
+		| {negation} logical_not logical_value {-> New comparison.negation(logical_value.comparison)};
+
+		/* Lastly, boolean literals and simple comparison expressions */
+	logical_value{-> comparison} = 
+		{true} true {-> New comparison.true()} 
+		| {false} false {-> New comparison.false()}
+		| {exp_cmp_exp} [ex1]:expression single_comparison [ex2]:expression {-> New comparison.single(ex1, single_comparison, ex2)};
+
+	single_comparison =
+		  {gt} greater_than {-> New single_comparison.gt()}
+		| {lt} less_than {-> New single_comparison.lt()}
+		| {ge} great_eq {-> New single_comparison.ge()}
+		| {le} less_eq {-> New single_comparison.le()}
+		| {ne} not_eq {-> New single_comparison.ne()}
+		| {eq} eq {-> New single_comparison.eq()};
+
+	/* Function Call + Arglist */
+	function_call = {func_call} identifier l_par arglist? r_par {-> New function_call.fc(identifier, [arglist.expression])};
+	
+	arglist {-> expression*} = {arg_list} expression expression_list* {-> [expression expression_list.expression]};
+
+	/* Value */
+	value {-> value} = {id_func} identifier dot function_call {-> New value.id_func_call(identifier, function_call)}
+		| {number} number {-> number.value}
+		| {str_double} string_double_quotes{-> New value.string1(string_double_quotes)}
+		| {str_single} string_single_quotes{-> New value.string2(string_single_quotes)}
+		| {none} none {-> New value.none()};
+
+	/* Number + Identifier */
+	number{->value} = {num} num{-> New value.number(num)};
+	identifier = {identifier} id {-> New identifier.id(id)};
+
+	/* Leftover production that used at many places */
+	expression_list{->expression} = {expression_list} comma expression{->expression.expression};
+/*#*/
+/*]*/
+	
+Abstract Syntax Tree
+	/* Goal */
+	goal = command*;
+	command = {function} function | {statement} statement;
+	
+	/* Function + Argument */
+	function = identifier argument* statement;
+	argument = identifier value;
+
+	/* Statement */
+	statement = {if} comparison statement
+		| {while} comparison statement
+		| {for} [id1]:identifier [id2]:identifier statement
+		| {return} expression
+		| {print} expression*
+		| {assign_var} identifier operate_assign expression
+		| {assign_array} identifier [ex1]:expression [ex2]:expression
+		| {assertion} expression*
+		| {func_call} function_call
+		/* Note that the Import Statement is NOT included in BNF */
+	   /* | {import_module} moduleas*
+		| {from_import_statement} module identifier_as**/
+		| {empty} ;
 
 	operate_assign = {assign} assign
 		| {sub_assign} sub_assign
 		| {div_assign} div_assign;
 
-	/* Expression */
-		/* First the lowest priority (addition and subtraction) */
-	expression = {res2} res2
-		| {addition} expression op_add res2
-		| {subtraction} expression op_sub res2;
-
-		/* Then second lowest (multiplication, division and modulo) */
-	res2 = {res3} res3
-		| {multiplication} res2 op_mul res3
-		| {division} res2 op_div res3
-		| {modulo} res2 op_mod res3;
-
-		/* Then the highest (exponentiation) */
-	res3 = {other_expression} other_expression
-		| {exponentiation} other_expression op_exp res3;
-
-		/* Lastly, each of the above expressions can be one of the following */
-	other_expression = {id_bracket} identifier l_br expression r_br
-		| {func_call} function_call
+	expression = {multiplication} [expr1]:expression [expr2]:expression
+		| {addition} [expr1]:expression [expr2]:expression
+		| {subtraction} [expr1]:expression [expr2]:expression
+		| {division} [expr1]:expression [expr2]:expression
+		| {modulo} [expr1]:expression [expr2]:expression
+		| {exponentiation} [base]:expression [power]:expression
+		| {id_bracket} identifier expression
 		| {value} value
 		| {id} identifier
-		| {length_expr} length l_par expression r_par
-		| {minimax} minimax l_par value value_list* r_par
-		| {list_definition} l_br expression expression_list* r_br;
+		| {minimax} value*
+		| {list_definition} expression*
+		| {func_call} function_call;
+		
+		/*
+	module = {module} identifier*;
+	moduleas = module identifier*;
+	identifier_as = [id1]:identifier [id2]:identifier*;*/
 
-	minimax = {max} max | {min} min;
-	value_list = {value_list} comma value;
+	function_call = {fc} identifier expression*;
 
-	/* Import */
-	import_statement = {import_module} import module import_as? module_list*
-		| {from_module_import} from module import identifier import_as? identifier_list*;
-
-	/* Module */
-	module = {module} id_dot* identifier;
-	import_as = {import_as} as identifier;
-	module_list = {module_list} comma module import_as?;
-
-	id_dot = {id_dot} identifier dot;
-	identifier_list = {identifier_list} comma identifier import_as?;
-
-	/* Comparison */
-		/* First the lowest priority (and, or) */
-	comparison = {negation} negation
-		| {and_comparison} comparison logical_and negation
-		| {or_comparison} comparison logical_or negation;
-
-		/* Then the highest (not) */
-	negation = {logical_value} logical_value
-		| {negation} logical_not logical_value;
-
-		/* Lastly, boolean literals and simple comparison expressions */
-	logical_value = {true} true | {false} false
-		| {exp_cmp_exp} [ex1]:expression single_comparison [ex2]:expression;
-
+	value = {val} value
+		| {number} num 
+		| {none} 
+		| {id_func_call} identifier function_call
+		| {string1} string_double_quotes
+		| {string2} string_single_quotes;
+	
+	minimax = {min} | {max};
+	
+	identifier = {id} id;
+	
 	single_comparison =
-		  {gt} greater_than
-		| {lt} less_than
-		| {ge} great_eq
-		| {le} less_eq
-		| {ne} not_eq
-		| {eq} eq;
-
-	/* Function Call + Arglist */
-	function_call = {func_call} identifier l_par arglist? r_par;
-	arglist = {arg_list} expression expression_list*;
-
-	/* Value */
-	value = {id_func} identifier dot function_call
-		| {number} number
-		| {str_double} string_double_quotes
-		| {str_single} string_single_quotes
-		| {none} none;
-
-	/* Number + Identifier */
-	number = {num} num;
-	identifier = {identifier} id;
-
-	/* Leftover production that used at many places */
-	expression_list = {expression_list} comma expression;
+		  {gt} 
+		| {lt} 
+		| {ge} 
+		| {le}
+		| {ne}
+		| {eq};
+	
+	comparison = {negation} comparison
+		| {and} [comp1]:comparison [comp2]:comparison
+		| {or} [comp1]:comparison [comp2]:comparison
+		| {single} [expr1]:expression single_comparison [expr2]:expression
+		| {true}
+		| {false};

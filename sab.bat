@@ -1,1 +1,1 @@
-sablecc minipython.grammar && javac ParserTest.java && java ParserTest example.py
+sablecc minipython.grammar && javac ASTTest1.java && java ASTTest1 example.py
