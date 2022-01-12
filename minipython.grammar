@@ -104,17 +104,17 @@ Productions
 		| {for} tab* for [id1]:identifier in [id2]:identifier colon statement {-> New statement.for(id1, id2, statement)}
 		| {return} tab* return expression {-> New statement.return(expression)}
 		| {print} tab* print expression expression_list* {-> New statement.print([expression expression_list.expression])}
-		| {assign_var} tab* identifier operate_assign expression {-> New statement.assign_var(identifier, operate_assign, expression)}
+		| {assign_var} tab* identifier operate_assign expression {-> New statement.assign_var(identifier, expression)}
 		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression {-> New statement.assign_array(identifier, ex1, ex2)}
-		| {assertion} tab* assert expression expression_list? {-> New statement.assertion([expression expression_list])}
+		| {assertion} tab* assert expression expression_list? {-> New statement.assertion([expression expression_list.expression])}
 		| {func_call} tab* function_call {-> New statement.func_call(function_call)}
 		/* Note that the Import Statement is NOT included in BNF */
 	  /*  | {import_statement} tab* import_statement {-> import_statement.statement}*/
 		| {empty_line} tab* {-> New statement.empty()};
 
-	operate_assign = {assign} assign {-> New operate_assign.assign(assign)}
-		| {sub_assign} sub_assign {-> New operate_assign.sub_assign(sub_assign)}
-		| {div_assign} div_assign {-> New operate_assign.div_assign(div_assign)};
+	operate_assign {-> } = {assign} assign {-> }
+		| {sub_assign} sub_assign {-> }
+		| {div_assign} div_assign {-> };
 
 /*[*/
 
@@ -220,7 +220,7 @@ Abstract Syntax Tree
 		| {for} [id1]:identifier [id2]:identifier statement
 		| {return} expression
 		| {print} expression*
-		| {assign_var} identifier operate_assign expression
+		| {assign_var} identifier expression
 		| {assign_array} identifier [ex1]:expression [ex2]:expression
 		| {assertion} expression*
 		| {func_call} function_call
@@ -228,10 +228,6 @@ Abstract Syntax Tree
 	   /* | {import_module} moduleas*
 		| {from_import_statement} module identifier_as**/
 		| {empty} ;
-
-	operate_assign = {assign} assign
-		| {sub_assign} sub_assign
-		| {div_assign} div_assign;
 
 	expression = {multiplication} [expr1]:expression [expr2]:expression
 		| {addition} [expr1]:expression [expr2]:expression
