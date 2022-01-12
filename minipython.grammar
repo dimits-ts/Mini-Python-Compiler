@@ -99,15 +99,16 @@ Productions
 	argument_list {-> argument} = {argument_list} comma identifier default_value? {-> New argument(identifier, default_value.value)};
 
 	/* Statement */
-	statement = {if} tab* if [comp]:comparison colon [stmt]:statement {-> New statement.if(comp, stmt)}
-		| {while} tab* while comparison colon statement {-> New statement.while(comparison, statement)}
-		| {for} tab* for [id1]:identifier in [id2]:identifier colon statement {-> New statement.for(id1, id2, statement)}
-		| {return} tab* return expression {-> New statement.return(expression.expr)}
-		| {print} tab* print expression expression_list* {-> New statement.print([expression.expr expression_list.expr])}
-		| {assign_var} tab* identifier operate_assign expression {-> New statement.assign_var(identifier, operate_assign, expression.expr)}
-		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression {-> New statement.assign_arr(identifier, ex1.expr, ex2.expr)}
-		| {assertion} tab* assert expression expression_list? {-> New statement.assertion([expression.expr  expression_list.expr])}
-		| {func_call} tab* function_call {-> New statement.func_call(function_call)}
+	statement =
+		  {if} tab* if [cmp]:comparison colon [stmt]:statement {-> New statement.if(cmp, stmt)}
+		| {while} tab* while [cmp]:comparison colon [stmt]:statement {-> New statement.while(cmp, stmt)}
+		| {for} tab* for [id1]:identifier in [id2]:identifier colon [stmt]:statement {-> New statement.for(id1, id2, stmt)}
+		| {return} tab* return [exp]:expression {-> New statement.return(exp.expr)}
+		| {print} tab* print [exp]:expression [exp_ls]:expression_list* {-> New statement.print([exp.expr exp_ls.expr])}
+		| {assign_var} tab* [id]:identifier [op_assign]:operate_assign [exp]:expression {-> New statement.assign_var(id, op_assign, exp.expr)}
+		| {assign_lst} tab* [id]:identifier l_br [exp1]:expression r_br assign [exp2]:expression {-> New statement.assign_lst(id, exp1.expr, exp2.expr)}
+		| {assertion} tab* assert [exp]:expression [exp_ls]:expression_list? {-> New statement.assertion([exp.expr exp_ls.expr])}
+		| {func_call} tab* [fc]:function_call {-> New statement.func_call(fc)}
 		/* Note that the Import Statement is NOT included in BNF */
 	  /*  | {import_statement} tab* import_statement {-> import_statement.statement}*/
 		| {empty_line} tab* {-> New statement.empty()};
@@ -119,31 +120,37 @@ Productions
 
 	/* Expression */
 		/* First the lowest priority (addition and subtraction) */
-	expression {-> expr} = {res2} res2 {-> res2.expr}
-		| {addition} expression op_add res2 {-> New expr.add(expression.expr, res2.expr)}
-		| {subtraction} expression op_sub res2 {-> New expr.sub(expression.expr, res2.expr)};
+	expression {-> expr} =
+		  {res2} [r2]:res2 {-> r2.expr}
+		| {addition} [exp]:expression op_add [r2]:res2 {-> New expr.add(exp.expr, r2.expr)}
+		| {subtraction} [exp]:expression op_sub [r2]:res2 {-> New expr.sub(exp.expr, r2.expr)};
 
 		/* Then second lowest (multiplication, division and modulo) */
-	res2 {-> expr} = {res3} res3 {-> res3.expr}
-		| {multiplication} res2 op_mul res3 {-> New expr.mul(res2.expr, res3.expr)}
-		| {division} res2 op_div res3 {-> New expr.div(res2.expr, res3.expr)}
-		| {modulo} res2 op_mod res3 {-> New expr.mod(res2.expr, res3.expr)};
+	res2 {-> expr} =
+		  {res3} [r3]:res3 {-> r3.expr}
+		| {multiplication} [r2]:res2 op_mul [r3]:res3 {-> New expr.mul(r2.expr, r3.expr)}
+		| {division} [r2]:res2 op_div [r3]:res3 {-> New expr.div(r2.expr, r3.expr)}
+		| {modulo} [r2]:res2 op_mod [r3]:res3 {-> New expr.mod(r2.expr, r3.expr)};
 
 		/* Then the highest (exponentiation) */
-	res3 {-> expr} = {other_expr} other_expr {-> other_expr.expr}
-		| {exponentiation} other_expr op_exp res3 {-> New expr.exp(other_expr.expr, res3.expr)};
+	res3 {-> expr} =
+		   {other_expr} [other]:other_expr {-> other.expr}
+		| {exponentiation} [other]:other_expr op_exp [r3]:res3 {-> New expr.exp(other.expr, r3.expr)};
 
 		/* Lastly, each of the above expressions can be one of the following */
-	other_expr {-> expr} = {id_bracket} identifier l_br expression r_br {-> New expr.id_bracket(identifier, expression.expr)}
-		| {func_call} function_call {-> New expr.func_call(function_call)}
-		| {value} value {-> New expr.value(value)}
-		| {id} identifier {-> New expr.id(identifier)}
-		| {length_expr} length l_par expression r_par {-> expression.expr}
-		| {minimax} minimax l_par value value_list* r_par {-> New expr.minimax([value value_list.value])}
-		| {ls_def} l_br expression expression_list* r_br {-> New expr.ls_def([expression.expr expression_list.expr])};
+	other_expr {-> expr} =
+		  {id_bracket} [id]:identifier l_br [exp]:expression r_br {-> New expr.id_bracket(id, exp.expr)}
+		| {func_call} [fc]:function_call {-> New expr.func_call(fc)}
+		| {value} [val]:value {-> New expr.value(val)}
+		| {id} [id]:identifier {-> New expr.id(id)}
+		| {length_expr} length l_par [exp]:expression r_par {-> exp.expr}
+		| {minimax} [minimax]:minimax l_par [val]:value [val_ls]:value_list* r_par {-> New expr.minimax(minimax, [val val_ls.value])}
+		| {ls_def} l_br [exp]:expression [exp_ls]:expression_list* r_br {-> New expr.ls_def([exp.expr exp_ls.expr])};
 
-	minimax = {max} max {->New minimax.max()} | {min} min {-> New minimax.min()};
-	value_list {-> value} = {value_list} comma value {-> value};
+	minimax =
+		  {max} max {->New minimax.max()}
+		| {min} min {-> New minimax.min()};
+	value_list {-> value} = {value_list} comma [val]:value {-> val};
 
 /*
 	 Import 
@@ -165,20 +172,20 @@ Productions
 	/* Comparison */
 		/* First the lowest priority (and, or) */
 	comparison =
-		  {negation} negation {-> negation.comparison}
-		| {and_comparison} comparison logical_and negation {-> New comparison.and(comparison, negation.comparison)}
-		| {or_comparison} comparison logical_or negation {-> New comparison.or(comparison, negation.comparison)};
+		  {negation} [neg]:negation {-> neg.comparison}
+		| {and_comparison} [cmp]:comparison logical_and [neg]:negation {-> New comparison.and(cmp, neg.comparison)}
+		| {or_comparison} [cmp]:comparison logical_or [neg]:negation {-> New comparison.or(cmp, neg.comparison)};
 
 		/* Then the highest (not) */
 	negation {-> comparison} =
-		  {logical_value} logical_value {-> logical_value.comparison}
-		| {negation} logical_not logical_value {-> New comparison.neg(logical_value.comparison)};
+		  {logical_value} [lv]:logical_value {-> lv.comparison}
+		| {negation} logical_not [lv]:logical_value {-> New comparison.neg(lv.comparison)};
 
 		/* Lastly, boolean literals and simple comparison expressions */
 	logical_value {-> comparison} = 
 		  {true} true {-> New comparison.true()} 
 		| {false} false {-> New comparison.false()}
-		| {expr_compare} [ex1]:expression comparison_operator [ex2]:expression {-> New comparison.single(ex1.expr, comparison_operator, ex2.expr)};
+		| {expr_compare} [exp1]:expression [cmp_op]:comparison_operator [exp2]:expression {-> New comparison.single(exp1.expr, cmp_op, exp2.expr)};
 
 	comparison_operator =
 		  {gt} greater_than {-> New comparison_operator.gt()}
@@ -189,23 +196,23 @@ Productions
 		| {eq} eq {-> New comparison_operator.eq()};
 
 	/* Function Call + Arglist */
-	function_call = {func_call} identifier l_par arglist? r_par {-> New function_call(identifier, [arglist.expr])};
-	arglist {-> expr*} = {arg_list} expression expression_list* {-> [expression.expr expression_list.expr]};
+	function_call = {func_call} [id]:identifier l_par [arg_ls]:arglist? r_par {-> New function_call(id, [arg_ls.expr])};
+	arglist {-> expr*} = {arg_list} [exp]:expression [exp_ls]:expression_list* {-> [exp.expr exp_ls.expr]};
 
 	/* Value */
 	value =
-		  {id_func} identifier dot function_call {-> New value.id_func_call(identifier, function_call)}
-		| {number} number {-> number.value}
-		| {str_double} string_double_quotes {-> New value.string1(string_double_quotes)}
-		| {str_single} string_single_quotes {-> New value.string2(string_single_quotes)}
+		  {id_func} [id]:identifier dot [fc]:function_call {-> New value.id_func_call(id, fc)}
+		| {number} [num]:number {-> num.value}
+		| {str_double} [ssq]:string_double_quotes {-> New value.string1(ssq)}
+		| {str_single} [sdq]:string_single_quotes {-> New value.string2(sdq)}
 		| {none} none {-> New value.none()};
 
 	/* Number + Identifier */
-	number {-> value} = {num} num {-> New value.number(num)};
-	identifier = {identifier} id {-> New identifier.id(id)};
+	number {-> value} = {num} [num]:num {-> New value.number(num)};
+	identifier = {identifier} [id]:id {-> New identifier.id(id)};
 
 	/* Leftover production that used at many places */
-	expression_list {-> expr} = {expression_list} comma expression {-> expression.expr};
+	expression_list {-> expr} = {expression_list} comma [exp]:expression {-> exp.expr};
 
 Abstract Syntax Tree
 	goal = command*;
@@ -220,7 +227,7 @@ Abstract Syntax Tree
 		| {return} expr
 		| {print} expr*
 		| {assign_var} identifier operate_assign expr
-		| {assign_arr} identifier [ex1]:expr [ex2]:expr
+		| {assign_lst} identifier [ex1]:expr [ex2]:expr
 		| {assertion} expr*
 		| {func_call} function_call
 		/* Note that the Import Statement is NOT included in BNF */
@@ -242,9 +249,11 @@ Abstract Syntax Tree
 		| {id_bracket} identifier expr
 		| {value} value
 		| {id} identifier
-		| {minimax} value*
+		| {minimax} minimax value*
 		| {ls_def} expr*
 		| {func_call} function_call;
+
+	minimax = {min} | {max};
 /*#*/
 /*]*/
 
@@ -263,7 +272,6 @@ Abstract Syntax Tree
 		| {string1} string_double_quotes
 		| {string2} string_single_quotes;
 
-	minimax = {min} | {max};
 	
 	identifier = {id} id;
 	
