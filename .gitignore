@@ -3,3 +3,8 @@
 minipython/
 failed_attempts/
 
+.classpath
+.project
+
+.idea/
+bin/

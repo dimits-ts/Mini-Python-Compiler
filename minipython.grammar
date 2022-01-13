@@ -94,9 +94,9 @@ Productions
 
 	/* Function + Argument */
 	function = {func_def} def identifier l_par argument? r_par colon statement {-> New function(identifier, [argument], statement) };
-	argument = {argument} identifier default_value? argument_list* {-> New argument(identifier, default_value.value)};
+	argument = {argument} identifier default_value? argument_list* {-> New argument.complex(identifier, default_value.value,[argument_list.argument])};
 	default_value {-> value} = {default_value} assign value {-> New value.val(value)};
-	argument_list {-> argument} = {argument_list} comma identifier default_value? {-> New argument(identifier, default_value.value)};
+	argument_list {-> argument} = {argument_list} comma identifier default_value? {-> New argument.simple(identifier, default_value.value)};
 
 	/* Statement */
 	statement = {if} tab* if comparison colon statement {-> New statement.if(comparison, statement)}
@@ -215,7 +215,8 @@ Abstract Syntax Tree
 	
 	/* Function + Argument */
 	function = identifier argument* statement;
-	argument = identifier value;
+	argument = {simple}identifier value
+	| {complex} identifier value argument*;
 
 	/* Statement */
 	statement = {if} comparison statement
