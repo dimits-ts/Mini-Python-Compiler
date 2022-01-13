@@ -89,28 +89,29 @@ Productions
 	goal = {commands} command more_commands* {-> New goal([command more_commands.command])};
 	command = 
 		  {function} function {-> New command.function(function)}
-		| {statement} statement {-> New command.statement(statement)};
+		| {statement} statement {-> New command.statement(statement)}
+		| {empty_line} tab* {-> New command.empty()};
 	more_commands {-> command} = {more_commands} eoltoken command {-> command};
 
 	/* Function + Argument */
-	function = {func_def} def identifier l_par argument? r_par colon statement {-> New function(identifier, [argument], statement) };
+	function = {func_def} def identifier l_par argument? r_par colon eoltoken statement {-> New function(identifier, [argument], statement) };
 	argument = {argument} identifier default_value? argument_list* {-> New argument.complex(identifier, default_value.value,[argument_list.argument])};
 	default_value {-> value} = {default_value} assign value {-> New value.val(value)};
 	argument_list {-> argument} = {argument_list} comma identifier default_value? {-> New argument.simple(identifier, default_value.value)};
 
 	/* Statement */
-	statement = {if} tab* if comparison colon statement {-> New statement.if(comparison, statement)}
-		| {while} tab* while comparison colon statement {-> New statement.while(comparison, statement)}
-		| {for} tab* for [id1]:identifier in [id2]:identifier colon statement {-> New statement.for(id1, id2, statement)}
+	statement = {if} tab* if comparison colon eoltoken statement {-> New statement.if(comparison, statement)}
+		| {while} tab* while comparison colon eoltoken statement {-> New statement.while(comparison, statement)}
+		| {for} tab* for [id1]:identifier in [id2]:identifier colon eoltoken statement {-> New statement.for(id1, id2, statement)}
 		| {return} tab* return expression {-> New statement.return(expression.expr)}
 		| {print} tab* print expression expression_list* {-> New statement.print([expression.expr expression_list.expr])}
 		| {assign_var} tab* identifier operate_assign expression {-> New statement.assign_var(identifier, operate_assign, expression.expr)}
 		| {assign_array} tab* identifier l_br [ex1]:expression r_br assign [ex2]:expression {-> New statement.assign_array(identifier, ex1.expr, ex2.expr)}
 		| {assertion} tab* assert expression expression_list? {-> New statement.assertion([expression.expr  expression_list.expr])}
-		| {func_call} tab* function_call {-> New statement.func_call(function_call)}
+		| {func_call} tab* function_call {-> New statement.func_call(function_call)};
 		/* Note that the Import Statement is NOT included in BNF */
 	  /*  | {import_statement} tab* import_statement {-> import_statement.statement}*/
-		| {empty_line} tab* {-> New statement.empty()};
+		
 
 	operate_assign =
 		  {assign} assign {-> New operate_assign.assign(assign)}
@@ -211,7 +212,7 @@ Productions
 Abstract Syntax Tree
 	/* Goal */
 	goal = command*;
-	command = {function} function | {statement} statement;
+	command = {function} function | {statement} statement |{empty};
 	
 	/* Function + Argument */
 	function = identifier argument* statement;
@@ -227,11 +228,10 @@ Abstract Syntax Tree
 		| {assign_var} identifier operate_assign expr
 		| {assign_array} identifier [ex1]:expr [ex2]:expr
 		| {assertion} expr*
-		| {func_call} function_call
+		| {func_call} function_call;
 		/* Note that the Import Statement is NOT included in BNF */
 	   /* | {import_module} moduleas*
 		| {from_import_statement} module identifier_as**/
-		| {empty} ;
 /*]*/
 	operate_assign =
 		  {assign} assign
